@@ -15,16 +15,30 @@ public:
 	// Sets default values for this actor's properties
 	APlatformTrigger();
 
+	// Called every frame
+	virtual void Tick(float DeltaTime) override;
+
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+private:	
 
 	/** Overlap volume for functionality to be triggered */
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Platform Switch")
+	UPROPERTY(VisibleAnywhere, Category = "Platform Switch")
 	class UBoxComponent* TriggerVolume;
+
+	UPROPERTY(EditAnyWhere)
+	TArray<class AMovingPlatform*> PlatformsToTrigger;
+
+	UFUNCTION()
+	void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	UFUNCTION()
+	void OnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
+
+
 
 };

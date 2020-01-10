@@ -46,28 +46,33 @@ void AMovingPlatform::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	/*Runs only on the server*/
-	if (HasAuthority())
+	if (ActiveTriggers > 0)
 	{
-
-		if (bInterping)
+		/*Runs only on the server*/
+		if (HasAuthority())
 		{
-			FVector CurrentLocation = GetActorLocation();
-			FVector Interp = FMath::VInterpTo(CurrentLocation, EndPoint, DeltaTime, InterpSpeed);
-			SetActorLocation(Interp);
 
-			float DistanceTravelled = (GetActorLocation() - StartPoint).Size();
-			if (Distance - DistanceTravelled <= 1.f)
+			if (bInterping)
 			{
-				ToggleInterping();
+				FVector CurrentLocation = GetActorLocation();
+				FVector Interp = FMath::VInterpTo(CurrentLocation, EndPoint, DeltaTime, InterpSpeed);
+				SetActorLocation(Interp);
 
-				GetWorldTimerManager().SetTimer(InterpTimer, this, &AMovingPlatform::ToggleInterping, InterpTime);
-				SwapVectors(StartPoint, EndPoint);
+				float DistanceTravelled = (GetActorLocation() - StartPoint).Size();
+				if (Distance - DistanceTravelled <= 1.f)
+				{
+					ToggleInterping();
+
+					GetWorldTimerManager().SetTimer(InterpTimer, this, &AMovingPlatform::ToggleInterping, InterpTime);
+					SwapVectors(StartPoint, EndPoint);
+				}
+
 			}
 
 		}
-
 	}
+
+	
 }
 
 void AMovingPlatform::ToggleInterping()
@@ -80,4 +85,18 @@ void AMovingPlatform::SwapVectors(FVector& VecOne, FVector& VecTwo)
 	FVector Temp = VecOne;
 	VecOne = VecTwo;
 	VecTwo = Temp;
+}
+
+
+void AMovingPlatform::AddActiveTrigger()
+{
+	ActiveTriggers++;
+}
+
+void AMovingPlatform::RemoveActiveTrigger()
+{
+	if (ActiveTriggers > 0)
+	{
+		ActiveTriggers--;
+	}
 }
