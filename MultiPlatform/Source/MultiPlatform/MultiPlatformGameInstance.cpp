@@ -8,6 +8,8 @@
 #include "UObject/ConstructorHelpers.h"
 #include "Blueprint/UserWidget.h"
 #include "MenuSystem/MainMenu.h"
+#include "MenuSystem/MenuWidget.h"
+#include "Engine/Level.h"
 #include "PlatformTrigger.h"
 
 UMultiPlatformGameInstance::UMultiPlatformGameInstance(const FObjectInitializer& ObjectInitializer)
@@ -16,6 +18,11 @@ UMultiPlatformGameInstance::UMultiPlatformGameInstance(const FObjectInitializer&
 	if (!ensure(MenuBPClass.Class != nullptr)) return;
 
 	MenuClass = MenuBPClass.Class;
+
+	ConstructorHelpers::FClassFinder<UUserWidget> InGameMenuBPClass(TEXT("/Game/MenuSystem/WBP_InGameMenu"));
+	if (!ensure(InGameMenuBPClass.Class != nullptr)) return;
+
+	InGameMenuClass = InGameMenuBPClass.Class;
 
 	//UE_LOG(LogTemp, Warning, TEXT("Found Class %s"), *PlatformTriggerBPClass.Class->GetName());
 }
@@ -29,27 +36,33 @@ void UMultiPlatformGameInstance::LoadMenu()
 {
 	if (!ensure(MenuClass != nullptr)) return;
 	
-	UMainMenu* Menu = CreateWidget<UMainMenu>(this, MenuClass);
+	Menu = CreateWidget<UMainMenu>(this, MenuClass);
 	if (!ensure(Menu != nullptr)) return;
 
-	Menu->AddToViewport();
+	Menu->Setup();
 
-	APlayerController* PlayerController = GetFirstLocalPlayerController();
-	if (!ensure(PlayerController != nullptr)) return;
-	
-	FInputModeUIOnly InputModeData;
-	InputModeData.SetWidgetToFocus(Menu->TakeWidget());
-	InputModeData.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	Menu->SetMenuInterface(this);
+}
 
-	PlayerController->SetInputMode(InputModeData);
+void UMultiPlatformGameInstance::InGameLoadMenu()
+{
+	if (!ensure(InGameMenuClass != nullptr)) return;
 
-	PlayerController->bShowMouseCursor = true;
+	UMenuWidget* Menu = CreateWidget<UMenuWidget>(this, InGameMenuClass);
+	if (!ensure(Menu != nullptr)) return;
+
+	Menu->Setup();
 
 	Menu->SetMenuInterface(this);
 }
 
 void UMultiPlatformGameInstance::Host()
 {
+	if (Menu != nullptr)
+	{
+		Menu->Teardown();
+	}
+
 	UEngine* Engine = GetEngine();
 	if (!ensure(Engine != nullptr)) return;
 
@@ -64,6 +77,11 @@ void UMultiPlatformGameInstance::Host()
 
 void UMultiPlatformGameInstance::Join(const FString& Address)
 {
+	if (Menu != nullptr)
+	{
+		Menu->Teardown();
+	}
+
 	UEngine* Engine = GetEngine();
 	if (!ensure(Engine != nullptr)) return;
 
@@ -74,5 +92,12 @@ void UMultiPlatformGameInstance::Join(const FString& Address)
 
 	PlayerController->ClientTravel(Address, ETravelType::TRAVEL_Absolute);
 
+}
 
+void UMultiPlatformGameInstance::LoadMainMenu()
+{
+	APlayerController* PlayerController = GetFirstLocalPlayerController();
+	if (!ensure(PlayerController != nullptr)) return;
+
+	PlayerController->ClientTravel("/Game/MenuSystem/MainMenu", ETravelType::TRAVEL_Absolute);
 }
